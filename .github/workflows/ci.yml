@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixtures-identity:
+    # The conformance fixtures are owned by the pulse-sdk repo (source of
+    # truth). This repo vendors a copy under protocol/fixtures; the copy must
+    # be byte-identical or the shared contract has silently forked.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Diff vendored fixtures against canonical pulse-sdk
+        run: |
+          base="https://raw.githubusercontent.com/Pulse-Circle-Studio/pulse-sdk/main/protocol"
+          status=0
+          for f in protocol/fixtures/*.json; do
+            name=$(basename "$f")
+            curl -fsSL "$base/fixtures/$name" -o /tmp/canonical.json || { echo "MISSING upstream: $name"; status=1; continue; }
+            if ! diff -u /tmp/canonical.json "$f"; then
+              echo "DRIFT: $name differs from canonical pulse-sdk"
+              status=1
+            fi
+          done
+          curl -fsSL "$base/PROTOCOL.md" -o /tmp/PROTOCOL.md && diff -u /tmp/PROTOCOL.md protocol/PROTOCOL.md || { echo "PROTOCOL.md drift"; status=1; }
+          exit $status
+
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Core tests (pure JVM — conformance fixtures + unit)
+        run: ./gradlew :pulse-core:test
+
+      - name: Android library assembles (AAR)
+        run: ./gradlew :pulse-android:assembleRelease
+
+  ios:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Build
+        run: swift build
+
+      - name: Test (conformance fixtures + unit)
+        run: swift test
+
+      - name: Lint podspec
+        run: pod lib lint PulseSDK.podspec --allow-warnings

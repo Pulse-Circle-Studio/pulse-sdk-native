@@ -1,0 +1,15 @@
+# Swift / SPM
+.build/
+.swiftpm/
+*.xcodeproj
+Pods/
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/*/build/
+android/local.properties
+.DS_Store
+
+# Keep the Gradle wrapper jar tracked (needed for CI):
+!android/gradle/wrapper/gradle-wrapper.jar

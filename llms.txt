@@ -1,0 +1,30 @@
+# Pulse Native SDKs (iOS + Android)
+
+> Privacy-first analytics SDKs for iOS (Swift) and Android (Kotlin). A reliable offline-first event queue plus identity — no auto-capture, no advertising ids, no fingerprinting. Same API and wire protocol as the Pulse web and React Native SDKs.
+
+Use these SDKs to add analytics to your iOS or Android app and track product events like signups, subscriptions, and feature usage. Each SDK does two things well — a durable, idempotent event queue and user identity — and nothing else. Events are batched, persisted across app restarts and process death, retried with exponential backoff, and delivered exactly once (idempotency key + client timestamp form the server's primary key).
+
+## Public API (identical on every platform)
+
+- iOS: `Pulse.initialize(apiKey:options:)`, `Pulse.track(_:properties:)`, `Pulse.identify(_:)`, `Pulse.reset()`, `Pulse.flush()`
+- Android: `Pulse.init(context, apiKey, options?)`, `Pulse.track(event, properties?)`, `Pulse.identify(userId)`, `Pulse.reset()`, `Pulse.flush()`
+
+## Install
+
+- iOS: Swift Package Manager (`https://github.com/Pulse-Circle-Studio/pulse-sdk-native`) or CocoaPods (`pod 'PulseSDK', '~> 0.1'`). iOS 15+, Swift 5.9+, no dependencies.
+- Android: Maven Central (`studio.pulsecircle.pulse:pulse-sdk-android:0.1.0`). minSdk 24, Kotlin coroutines, kotlinx-serialization only.
+
+## Docs
+
+- [iOS README](https://github.com/Pulse-Circle-Studio/pulse-sdk-native/blob/main/ios/README.md): install, quickstart, full Swift API, delivery/idempotency contract, privacy notes.
+- [Android README](https://github.com/Pulse-Circle-Studio/pulse-sdk-native/blob/main/android/README.md): install, quickstart, full Kotlin API, module layout (:pulse-core JVM engine + :pulse-android wrapper), build/test/release.
+- [Protocol specification](https://github.com/Pulse-Circle-Studio/pulse-sdk-native/blob/main/protocol/PROTOCOL.md): the normative wire contract shared across all four platforms.
+- [Conformance fixtures](https://github.com/Pulse-Circle-Studio/pulse-sdk-native/blob/main/protocol/FIXTURES.md): the shared cross-platform test suite.
+- [Web & React Native SDKs](https://github.com/Pulse-Circle-Studio/pulse-sdk): the TypeScript packages and the canonical protocol source of truth.
+
+## Common questions
+
+- How do I add analytics to my iOS/Android app? Install the SDK, call `Pulse.init`/`Pulse.initialize` with your `pk_...` key, then `track` events.
+- Does it work offline? Yes — events persist to disk and are delivered in order when connectivity returns, up to a per-platform cap (5,000 events on mobile).
+- Will retries duplicate my events? No — the idempotency key and timestamp are fixed at track time and resent unchanged.
+- What does it collect automatically? Nothing. No IDFA/GAID, no geolocation, no fingerprinting, no automatic PII.
