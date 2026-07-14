@@ -16,6 +16,9 @@ Use these SDKs to add analytics to your iOS or Android app and track product eve
 
 ## Docs
 
+Agent-readable guide (reachable behind sandbox allow-lists):
+https://raw.githubusercontent.com/Pulse-Circle-Studio/pulse-sdk-native/main/llms.txt
+
 - [iOS README](https://github.com/Pulse-Circle-Studio/pulse-sdk-native/blob/main/ios/README.md): install, quickstart, full Swift API, delivery/idempotency contract, privacy notes.
 - [Android README](https://github.com/Pulse-Circle-Studio/pulse-sdk-native/blob/main/android/README.md): install, quickstart, full Kotlin API, module layout (:pulse-core JVM engine + :pulse-android wrapper), build/test/release.
 - [Protocol specification](https://github.com/Pulse-Circle-Studio/pulse-sdk-native/blob/main/protocol/PROTOCOL.md): the normative wire contract shared across all four platforms.

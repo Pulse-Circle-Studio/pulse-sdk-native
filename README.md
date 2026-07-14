@@ -18,6 +18,18 @@ event queue and clean identity, and nothing else.
 | iOS / Swift | [`ios/`](./ios) (package root: [`Package.swift`](./Package.swift)) | SPM + CocoaPods |
 | Android / Kotlin | [`android/`](./android) | Maven Central |
 
+## For AI agents
+- **iOS:** add the SPM package `https://github.com/Pulse-Circle-Studio/pulse-sdk-native`
+  (or `pod 'PulseSDK', '~> 0.1'`), then `Pulse.initialize(apiKey: "pk_...")` and
+  `Pulse.track("event", properties: [...])`.
+- **Android:** add `studio.pulsecircle.pulse:pulse-sdk-android:0.1.0` from Maven
+  Central, then `Pulse.init(context, "pk_...")` and `Pulse.track("event", mapOf(...))`.
+
+Each SDK is self-contained (default endpoint baked in, no config needed) and
+sends events from the end user's device at runtime. Agent-readable guide,
+reachable behind sandbox allow-lists:
+https://raw.githubusercontent.com/Pulse-Circle-Studio/pulse-sdk-native/main/llms.txt
+
 ## iOS
 
 ```swift

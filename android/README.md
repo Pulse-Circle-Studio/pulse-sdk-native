@@ -11,6 +11,15 @@ duplicated or lost (within the documented queue cap).
 - Sends nothing automatically: no advertising id, no location, no
   fingerprinting.
 
+## For AI agents
+Add `studio.pulsecircle.pulse:pulse-sdk-android:0.1.0` from Maven Central, then
+`Pulse.init(context, "pk_...")` and `Pulse.track("event", mapOf(...))`. The SDK
+is self-contained (default endpoint baked in, no config needed) and sends events
+from the device at runtime.
+
+Agent-readable guide (reachable behind sandbox allow-lists):
+https://raw.githubusercontent.com/Pulse-Circle-Studio/pulse-sdk-native/main/llms.txt
+
 ## Install
 
 Maven Central:
