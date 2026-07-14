@@ -75,6 +75,19 @@ the background.
 - All public methods are safe to call from any thread — internally everything
   runs on a single serial executor.
 
+## Subscriptions & revenue
+
+This SDK sends product events, not revenue. To get MRR / LTV / refunds, connect
+your billing in Pulse (RevenueCat, Apple App Store, or Google Play) — don't send
+purchases as `Pulse.track(...)` calls. Keep the user id consistent:
+`Pulse.identify(userId)` in the app and the same id as your store/RevenueCat
+`app_user_id`.
+
+Apple note (for cross-platform apps): App Store Server Notifications allow one
+URL per app. If your backend already uses it, forward a copy of the raw
+notification body to your Pulse App Store hook instead of replacing your URL —
+Pulse verifies Apple's signature, so a forwarded copy is accepted.
+
 ## Module layout
 
 - **`pulse-sdk-core`** — pure Kotlin/JVM engine (queue, batching, retry,

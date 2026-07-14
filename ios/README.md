@@ -70,6 +70,12 @@ All methods are safe to call from any thread and return immediately; work happen
 
 Pulse collects **nothing** automatically. No IDFA, no geolocation, no fingerprinting, no lifecycle auto-capture, no PII — only the events and properties you explicitly pass. The only identifiers on the wire are a randomly generated anonymous UUID and, after you call `identify`, the user id you provided. Empty by default is part of the product.
 
+## Subscriptions & revenue
+
+This SDK sends product events, not revenue. To get MRR / LTV / refunds, connect your billing in Pulse (RevenueCat, Apple App Store, or Google Play) — don't send purchases as `Pulse.track(...)` calls. Keep the user id consistent: `Pulse.identify(userId)` in the app and the same id as your store/RevenueCat `app_user_id`.
+
+Apple note: App Store Server Notifications allow one URL per app. If your backend already uses it, forward a copy of the raw notification body to your Pulse App Store hook instead of replacing your URL — Pulse verifies Apple's signature, so a forwarded copy is accepted.
+
 ## Conformance
 
 This SDK implements the [Pulse wire protocol v1](../protocol/PROTOCOL.md) and passes the shared [conformance fixtures](../protocol/fixtures) in CI via the fixture runner in `Tests/PulseSDKTests`. Run them locally with `swift test`.
