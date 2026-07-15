@@ -7,11 +7,15 @@ pluginManagement {
         mavenCentral()
         google()
     }
-    // Kotlin plugin versions live in the root build.gradle.kts (apply false).
-    // The Android Gradle Plugin is applied only by :pulse-android, so its
-    // version is pinned here and resolved lazily (from google()) only when that
-    // module is included — keeping the JVM-only :pulse-core build off google().
+    // All plugin versions are pinned here (same classloader scope), so
+    // :pulse-android can apply AGP + kotlin-android together without the
+    // cross-classloader "KotlinAndroidTarget → BaseVariant" failure. AGP is
+    // resolved lazily (from google()) only when :pulse-android is included, so
+    // the JVM-only :pulse-core build never touches google()/dl.google.com.
     plugins {
+        kotlin("jvm") version "2.0.21"
+        kotlin("android") version "2.0.21"
+        kotlin("plugin.serialization") version "2.0.21"
         id("com.android.library") version "8.5.2"
     }
 }

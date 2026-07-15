@@ -1,18 +1,12 @@
 // Root build file for the Pulse Android SDK.
-// Plugin versions are declared here once (apply false) and applied without a
-// version in the subprojects, so the Kotlin plugin is loaded a single time on
-// the shared build classpath rather than independently per subproject.
-// Only the Kotlin plugins are declared here (they're applied in BOTH
-// subprojects — declaring once avoids the "loaded multiple times" warning).
-// The Android Gradle Plugin is applied only in :pulse-android, so its version
-// stays in settings.gradle.kts pluginManagement — declaring it here would force
-// resolving it from dl.google.com even for the JVM-only :pulse-core build.
-plugins {
-    kotlin("jvm") version "2.0.21" apply false
-    kotlin("android") version "2.0.21" apply false
-    kotlin("plugin.serialization") version "2.0.21" apply false
-}
-
+// NOTE: plugin versions are declared in settings.gradle.kts (pluginManagement),
+// NOT here with `apply false`. Declaring the Kotlin plugins at the root scope
+// while AGP is applied at the project scope puts them on different classloaders,
+// which breaks org.jetbrains.kotlin.android with a "KotlinAndroidTarget →
+// com/android/build/gradle/api/BaseVariant" NoClassDefFoundError. Keeping both
+// in pluginManagement applies them in the same scope. The benign "Kotlin plugin
+// loaded multiple times" warning is accepted as the cost of that correctness.
+//
 // Per-module configuration lives in :pulse-core and :pulse-android; the shared
 // Maven Central (Sonatype) publishing target is wired here for every module
 // that applies the maven-publish plugin.
