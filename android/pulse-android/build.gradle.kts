@@ -10,7 +10,9 @@ version = "0.1.0"
 
 android {
     namespace = "studio.pulsecircle.pulse.android"
-    compileSdk = 35
+    // 34 is the highest compileSdk tested with AGP 8.5.2; nothing here uses an
+    // API above it (minSdk 24). Bump alongside AGP if you raise it.
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 24
@@ -29,7 +31,11 @@ android {
 }
 
 kotlin {
-    jvmToolchain(17)
+    // Match the Java target above (1.8) so AGP's JVM-target validation passes;
+    // the core JAR this AAR depends on is also 1.8 bytecode.
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+    }
 }
 
 dependencies {
