@@ -4,7 +4,7 @@ The two platforms release independently, each from a prefixed git tag.
 
 ## iOS
 
-1. Bump `s.version` in `PulseSDK.podspec`.
+1. Bump `s.version` in `PulseCircleSDK.podspec`.
 2. Land on `main` with green CI (`swift test`, `pod lib lint`).
 3. Tag and push:
 
@@ -62,7 +62,7 @@ creation — there is no separate signup), click the confirmation link in the
 email, then copy the token from `~/.netrc` (the `trunk.cocoapods.org` entry)
 into the `COCOAPODS_TRUNK_TOKEN` secret. Requires a local CocoaPods install
 (`brew install cocoapods`). Before registering, check the pod name is still
-free: `pod trunk info PulseSDK` should say "No pod found".
+free: `pod trunk info PulseCircleSDK` should say "No pod found".
 
 ## Secrets
 

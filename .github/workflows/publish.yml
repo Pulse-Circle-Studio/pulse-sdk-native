@@ -23,7 +23,7 @@ jobs:
       - name: Verify podspec version matches tag
         run: |
           version="${GITHUB_REF_NAME##*-v}"
-          spec_version=$(grep -E "s.version\s*=" PulseSDK.podspec | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
+          spec_version=$(grep -E "s.version\s*=" PulseCircleSDK.podspec | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
           if [ "$spec_version" != "$version" ]; then
             echo "Tag $version != podspec $spec_version" && exit 1
           fi
@@ -32,7 +32,7 @@ jobs:
         run: swift test
 
       - name: Push to CocoaPods trunk
-        run: pod trunk push PulseSDK.podspec --allow-warnings
+        run: pod trunk push PulseCircleSDK.podspec --allow-warnings
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 

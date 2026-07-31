@@ -1,5 +1,9 @@
 Pod::Spec.new do |s|
-  s.name             = 'PulseSDK'
+  # 'PulseSDK' is owned on trunk by the defunct pulse.io (last release 2016),
+  # so the pod ships as PulseCircleSDK — while module_name keeps the Swift
+  # module 'PulseSDK', identical to the SPM product: `import PulseSDK` either way.
+  s.name             = 'PulseCircleSDK'
+  s.module_name      = 'PulseSDK'
   s.version          = '0.1.0'
   s.summary          = 'Pulse analytics SDK for iOS — a reliable, ordered, persistent event queue with idempotent delivery.'
   s.description      = <<-DESC

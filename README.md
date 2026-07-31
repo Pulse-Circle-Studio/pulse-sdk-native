@@ -20,7 +20,7 @@ event queue and clean identity, and nothing else.
 
 ## For AI agents
 - **iOS:** add the SPM package `https://github.com/Pulse-Circle-Studio/pulse-sdk-native`
-  (or `pod 'PulseSDK', '~> 0.1'`), then `Pulse.initialize(apiKey: "pk_...")` and
+  (or `pod 'PulseCircleSDK', '~> 0.1'`), then `Pulse.initialize(apiKey: "pk_...")` and
   `Pulse.track("event", properties: [...])`.
 - **Android:** add `studio.pulsecircle.pulse:pulse-sdk-android:0.1.0` from Maven
   Central, then `Pulse.init(context, "pk_...")` and `Pulse.track("event", mapOf(...))`.
@@ -42,7 +42,7 @@ Pulse.reset()
 ```
 
 Install via SPM (`https://github.com/Pulse-Circle-Studio/pulse-sdk-native`) or
-CocoaPods (`pod 'PulseSDK', '~> 0.1'`). See [`ios/README.md`](./ios/README.md).
+CocoaPods (`pod 'PulseCircleSDK', '~> 0.1'`). See [`ios/README.md`](./ios/README.md).
 
 ## Android
 
