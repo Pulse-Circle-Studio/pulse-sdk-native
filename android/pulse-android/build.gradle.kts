@@ -1,8 +1,9 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+
 plugins {
     id("com.android.library")
     kotlin("android")
-    `maven-publish`
-    signing
+    id("com.vanniktech.maven.publish")
 }
 
 group = "studio.pulsecircle.pulse"
@@ -23,11 +24,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
-    }
+    // No android.publishing.singleVariant here: the maven.publish plugin
+    // declares the release-variant publication itself (see mavenPublishing).
 }
 
 kotlin {
@@ -43,45 +41,39 @@ dependencies {
     api(project(":pulse-core"))
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-                artifactId = "pulse-sdk-android"
-                pom {
-                    name.set("Pulse SDK for Android")
-                    description.set("Android analytics SDK: a reliable, offline-first event queue and identity over the Pulse ingestion protocol. Add analytics to your Android app in two lines.")
-                    url.set("https://github.com/Pulse-Circle-Studio/pulse-sdk-native")
-                    licenses {
-                        license {
-                            name.set("MIT License")
-                            url.set("https://opensource.org/licenses/MIT")
-                        }
-                    }
-                    developers {
-                        developer {
-                            id.set("pulse-circle-studio")
-                            name.set("Pulse Circle Studio")
-                        }
-                    }
-                    scm {
-                        url.set("https://github.com/Pulse-Circle-Studio/pulse-sdk-native")
-                        connection.set("scm:git:git://github.com/Pulse-Circle-Studio/pulse-sdk-native.git")
-                        developerConnection.set("scm:git:ssh://git@github.com/Pulse-Circle-Studio/pulse-sdk-native.git")
-                    }
-                }
+mavenPublishing {
+    // Maven Central via the Central Portal — same setup as :pulse-core (see
+    // the comment there and RELEASING.md for the credential env vars).
+    publishToMavenCentral()
+    // Sign only when a key is supplied (always set in CI) — see :pulse-core.
+    if (findProperty("signingInMemoryKey") != null) {
+        signAllPublications()
+    }
+    // Sources jar from the release variant; Central requires a javadoc jar
+    // to exist, and with no dokka applied the plugin publishes an empty one.
+    configure(AndroidSingleVariantLibrary("release", sourcesJar = true, publishJavadocJar = true))
+    coordinates(group.toString(), "pulse-sdk-android", version.toString())
+
+    pom {
+        name.set("Pulse SDK for Android")
+        description.set("Android analytics SDK: a reliable, offline-first event queue and identity over the Pulse ingestion protocol. Add analytics to your Android app in two lines.")
+        url.set("https://github.com/Pulse-Circle-Studio/pulse-sdk-native")
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
             }
         }
-    }
-
-    signing {
-        val signingKey = findProperty("signingKey") as String? ?: System.getenv("PULSE_SIGNING_KEY")
-        val signingPassword = findProperty("signingPassword") as String? ?: System.getenv("PULSE_SIGNING_PASSWORD")
-        if (signingKey != null) {
-            useInMemoryPgpKeys(signingKey, signingPassword)
+        developers {
+            developer {
+                id.set("pulse-circle-studio")
+                name.set("Pulse Circle Studio")
+            }
         }
-        isRequired = signingKey != null
-        sign(publishing.publications)
+        scm {
+            url.set("https://github.com/Pulse-Circle-Studio/pulse-sdk-native")
+            connection.set("scm:git:git://github.com/Pulse-Circle-Studio/pulse-sdk-native.git")
+            developerConnection.set("scm:git:ssh://git@github.com/Pulse-Circle-Studio/pulse-sdk-native.git")
+        }
     }
 }

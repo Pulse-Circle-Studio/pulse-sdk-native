@@ -2,7 +2,9 @@ name: Publish
 
 # Tag-triggered publish. Independent per-platform prefixes:
 #   ios-v<version>     → validate SPM tag + push CocoaPods trunk
-#   android-v<version> → publish AAR + core JAR to Maven Central (Sonatype)
+#   android-v<version> → publish AAR + core JAR to Maven Central
+#                        (Central Portal — see RELEASING.md for the one-time
+#                        namespace/token/GPG setup)
 # SPM itself needs no publish step: the git tag IS the release. We validate
 # and (for Swift Package Index) tag with a bare vX.Y.Z alias if desired.
 on:
@@ -59,11 +61,15 @@ jobs:
       - name: Test
         run: ./gradlew :pulse-core:test
 
-      - name: Publish to Maven Central (Sonatype)
-        run: ./gradlew :pulse-core:publish :pulse-android:publish
+      - name: Publish to Maven Central (Central Portal)
+        # Uploads both modules to central.sonatype.com and auto-releases the
+        # validated deployments to repo1.maven.org.
+        run: ./gradlew publishAndReleaseToMavenCentral
         env:
-          # Sonatype OSSRH credentials + GPG signing key (base64-armored).
-          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.PULSE_SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.PULSE_SIGNING_PASSWORD }}
-          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
-          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+          # Central Portal user token (username/password pair) + GPG signing
+          # key (ASCII-armored private key block). Env var names are the ones
+          # the com.vanniktech.maven.publish plugin reads.
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.PULSE_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.PULSE_SIGNING_PASSWORD }}
