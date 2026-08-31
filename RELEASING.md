@@ -15,6 +15,12 @@ tag**; Android from an `android-v` prefixed tag.
    git push origin 0.1.1
    ```
 
+   > The first published iOS release is **0.1.1**, not 0.1.0. A `0.1.0` tag
+   > already exists from before the pod rename, so it carries the old
+   > `PulseSDK.podspec` — `pod trunk push` would fail against it, and moving a
+   > tag that consumers may already have resolved is worse than skipping a
+   > version number.
+
    - **Swift Package Manager** needs no publish step — the git tag *is* the
      release. This is why the prefix matters: SPM only resolves bare semver or
      `vX.Y.Z` tags, so an `ios-v…` tag would be invisible to Xcode. Consumers

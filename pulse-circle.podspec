@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   # on both CocoaPods and Swift Package Manager.
   s.name             = 'pulse-circle'
   s.module_name      = 'PulseSDK'
-  s.version          = '0.1.0'
+  s.version          = '0.1.1'
   s.summary          = 'Pulse analytics SDK for iOS — a reliable, ordered, persistent event queue with idempotent delivery.'
   s.description      = <<-DESC
     Pulse is a privacy-first analytics SDK. It does exactly two things: a

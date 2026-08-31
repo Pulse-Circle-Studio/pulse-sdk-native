@@ -6,7 +6,7 @@ import Foundation
 enum PulseWireFormat {
 
     static let sdkName = "pulse-ios"
-    static let sdkVersion = "0.1.0"
+    static let sdkVersion = "0.1.1"
 
     // MARK: - ULID
 
