@@ -1,5 +1,10 @@
 Pod::Spec.new do |s|
-  s.name             = 'PulseSDK'
+  # The pod is named 'pulse-circle' (matching the @pulse-circle npm scope); the
+  # CocoaPods name 'PulseSDK' was registered by an unrelated project in 2014.
+  # module_name keeps the import stable: consumers still write `import PulseSDK`
+  # on both CocoaPods and Swift Package Manager.
+  s.name             = 'pulse-circle'
+  s.module_name      = 'PulseSDK'
   s.version          = '0.1.0'
   s.summary          = 'Pulse analytics SDK for iOS — a reliable, ordered, persistent event queue with idempotent delivery.'
   s.description      = <<-DESC

@@ -16,8 +16,14 @@ subprojects {
             repositories {
                 maven {
                     name = "sonatype"
-                    val releasesUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                    val snapshotsUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+                    // OSSRH (oss.sonatype.org / s01.oss.sonatype.org) was sunset on
+                    // 2025-06-30 and now answers 402. Publishing goes through the
+                    // Central Portal; this is Sonatype's OSSRH Staging API
+                    // compatibility service, which speaks the Nexus 2 API the
+                    // standard maven-publish plugin already knows and forwards to
+                    // the Portal. Credentials are a Portal *user token*.
+                    val releasesUrl = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
+                    val snapshotsUrl = uri("https://central.sonatype.com/repository/maven-snapshots/")
                     url = if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl
                     credentials {
                         username = (findProperty("sonatypeUsername") as String?) ?: System.getenv("SONATYPE_USERNAME")

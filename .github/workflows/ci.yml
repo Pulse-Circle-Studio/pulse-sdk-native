@@ -69,4 +69,4 @@ jobs:
         run: swift test
 
       - name: Lint podspec
-        run: pod lib lint PulseSDK.podspec --allow-warnings
+        run: pod lib lint pulse-circle.podspec --allow-warnings

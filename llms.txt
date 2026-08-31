@@ -11,7 +11,7 @@ Use these SDKs to add analytics to your iOS or Android app and track product eve
 
 ## Install
 
-- iOS: Swift Package Manager (`https://github.com/Pulse-Circle-Studio/pulse-sdk-native`) or CocoaPods (`pod 'PulseSDK', '~> 0.1'`). iOS 15+, Swift 5.9+, no dependencies.
+- iOS: Swift Package Manager (`https://github.com/Pulse-Circle-Studio/pulse-sdk-native`) or CocoaPods (`pod 'pulse-circle', '~> 0.1'`). iOS 15+, Swift 5.9+, no dependencies.
 - Android: Maven Central (`studio.pulsecircle.pulse:pulse-sdk-android:0.1.0`). minSdk 24, Kotlin coroutines, kotlinx-serialization only.
 
 ## Docs

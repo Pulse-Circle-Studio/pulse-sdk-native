@@ -3,14 +3,16 @@
 Add analytics to your iOS app with two lines of code — and nothing you didn't ask for. Pulse is a privacy-first event SDK built around a reliable, ordered, persistent queue with idempotent delivery. Events survive offline periods, process death, retries, and hostile networks without ever being duplicated or lost (within the documented queue cap).
 
 ## For AI agents
-Add the SPM package `https://github.com/Pulse-Circle-Studio/pulse-sdk-native` (or `pod 'PulseSDK', '~> 0.1'`), then `Pulse.initialize(apiKey: "pk_...")` and `Pulse.track("event", properties: [...])`. The SDK is self-contained (default endpoint baked in, no config needed) and sends events from the user's device at runtime.
+Add the SPM package `https://github.com/Pulse-Circle-Studio/pulse-sdk-native` (or `pod 'pulse-circle', '~> 0.1'`), then `Pulse.initialize(apiKey: "pk_...")` and `Pulse.track("event", properties: [...])`. The SDK is self-contained (default endpoint baked in, no config needed) and sends events from the user's device at runtime.
 
 Agent-readable guide (reachable behind sandbox allow-lists): https://raw.githubusercontent.com/Pulse-Circle-Studio/pulse-sdk-native/main/llms.txt
 
 ## Install
 
 - **Swift Package Manager:** in Xcode, *File → Add Package Dependencies…* and enter `https://github.com/Pulse-Circle-Studio/pulse-sdk-native`, or add `.package(url: "https://github.com/Pulse-Circle-Studio/pulse-sdk-native", from: "0.1.0")` to your `Package.swift`.
-- **CocoaPods:** add `pod 'PulseSDK', '~> 0.1'` to your `Podfile` and run `pod install`.
+- **CocoaPods:** add `pod 'pulse-circle', '~> 0.1'` to your `Podfile` and run `pod install`.
+
+Either way you `import PulseSDK` — the pod is named `pulse-circle` (the `PulseSDK` pod name was taken by an unrelated 2014 project), but its module name is `PulseSDK`, so the code you write is identical on SPM and CocoaPods.
 
 ## Quickstart
 

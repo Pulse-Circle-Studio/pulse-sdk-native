@@ -20,7 +20,7 @@ event queue and clean identity, and nothing else.
 
 ## For AI agents
 - **iOS:** add the SPM package `https://github.com/Pulse-Circle-Studio/pulse-sdk-native`
-  (or `pod 'PulseSDK', '~> 0.1'`), then `Pulse.initialize(apiKey: "pk_...")` and
+  (or `pod 'pulse-circle', '~> 0.1'`), then `Pulse.initialize(apiKey: "pk_...")` and
   `Pulse.track("event", properties: [...])`.
 - **Android:** add `studio.pulsecircle.pulse:pulse-sdk-android:0.1.0` from Maven
   Central, then `Pulse.init(context, "pk_...")` and `Pulse.track("event", mapOf(...))`.
@@ -42,7 +42,7 @@ Pulse.reset()
 ```
 
 Install via SPM (`https://github.com/Pulse-Circle-Studio/pulse-sdk-native`) or
-CocoaPods (`pod 'PulseSDK', '~> 0.1'`). See [`ios/README.md`](./ios/README.md).
+CocoaPods (`pod 'pulse-circle', '~> 0.1'`). See [`ios/README.md`](./ios/README.md).
 
 ## Android
 
@@ -80,8 +80,9 @@ protocol/            Vendored PROTOCOL.md + FIXTURES.md + fixtures/ (CI-checked)
 
 Per-platform tags trigger the [publish workflow](./.github/workflows/publish.yml):
 
-- `ios-v<version>` — validates the podspec and pushes to CocoaPods trunk. (SPM
-  needs no publish step: the git tag is the release.)
+- `<version>` (bare semver, e.g. `0.1.1`) — the iOS release. Swift Package
+  Manager resolves this tag directly, so the tag *is* the SPM release; the same
+  tag pushes the `pulse-circle` pod to CocoaPods trunk.
 - `android-v<version>` — publishes the AAR and core JAR to Maven Central.
 
 ## License

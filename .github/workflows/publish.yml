@@ -1,27 +1,32 @@
 name: Publish
 
-# Tag-triggered publish. Independent per-platform prefixes:
-#   ios-v<version>     → validate SPM tag + push CocoaPods trunk
-#   android-v<version> → publish AAR + core JAR to Maven Central (Sonatype)
-# SPM itself needs no publish step: the git tag IS the release. We validate
-# and (for Swift Package Index) tag with a bare vX.Y.Z alias if desired.
+# Tag-triggered publish.
+#
+#   <version> or v<version>  → the iOS release. Swift Package Manager only
+#                              resolves bare semver (or vX.Y.Z) tags, so this
+#                              IS the SPM release — no publish step needed —
+#                              and the same tag pushes the CocoaPods spec.
+#   android-v<version>       → AAR + core JAR to Maven Central.
+#
+# Do NOT use an `ios-v*` tag: SPM cannot see it.
 on:
   push:
     tags:
-      - 'ios-v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'android-v*'
 
 jobs:
   ios:
-    if: startsWith(github.ref_name, 'ios-v')
+    if: ${{ !startsWith(github.ref_name, 'android-v') }}
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
       - name: Verify podspec version matches tag
         run: |
-          version="${GITHUB_REF_NAME##*-v}"
-          spec_version=$(grep -E "s.version\s*=" PulseSDK.podspec | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
+          version="${GITHUB_REF_NAME#v}"
+          spec_version=$(grep -E "s.version\s*=" pulse-circle.podspec | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
           if [ "$spec_version" != "$version" ]; then
             echo "Tag $version != podspec $spec_version" && exit 1
           fi
@@ -30,7 +35,7 @@ jobs:
         run: swift test
 
       - name: Push to CocoaPods trunk
-        run: pod trunk push PulseSDK.podspec --allow-warnings
+        run: pod trunk push pulse-circle.podspec --allow-warnings
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 
