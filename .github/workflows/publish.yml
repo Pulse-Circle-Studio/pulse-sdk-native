@@ -23,6 +23,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Secrets live per-repository, so one put in the wrong repo arrives here
+      # as an empty string and fails deep inside a publish tool with an
+      # unrelated-looking message. Name the missing secret instead.
+      - name: Check publishing secrets are present
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          [ -n "$COCOAPODS_TRUNK_TOKEN" ] || {
+            echo "::error::COCOAPODS_TRUNK_TOKEN is empty. Set it in THIS repository (pulse-sdk-native) → Settings → Secrets and variables → Actions."
+            exit 1
+          }
+
       - name: Verify podspec version matches tag
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -55,6 +67,31 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
+      # Same reasoning as the iOS job: an empty PULSE_SIGNING_KEY surfaces as
+      # Gradle's "Could not read PGP secret key", which says nothing about
+      # where the secret should have been.
+      - name: Check publishing secrets are present
+        env:
+          PULSE_SIGNING_KEY: ${{ secrets.PULSE_SIGNING_KEY }}
+          PULSE_SIGNING_PASSWORD: ${{ secrets.PULSE_SIGNING_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        run: |
+          missing=""
+          # PULSE_SIGNING_PASSWORD is deliberately not checked: a key generated
+          # without a passphrase legitimately has an empty one.
+          for name in PULSE_SIGNING_KEY SONATYPE_USERNAME SONATYPE_PASSWORD; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          [ -z "$missing" ] || {
+            echo "::error::Empty secret(s):$missing. Set them in THIS repository (pulse-sdk-native) → Settings → Secrets and variables → Actions — secrets in another repository are not visible here."
+            exit 1
+          }
+          case "$PULSE_SIGNING_KEY" in
+            *"BEGIN PGP PRIVATE KEY BLOCK"*) ;;
+            *) echo "::error::PULSE_SIGNING_KEY is set but is not an armored private key. Use the full output of: gpg --armor --export-secret-keys <KEY_ID>"; exit 1 ;;
+          esac
 
       - name: Verify version matches tag
         run: |
