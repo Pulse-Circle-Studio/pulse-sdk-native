@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     kotlin("android")
+    id("org.jetbrains.dokka")
     `maven-publish`
     signing
 }
@@ -26,6 +27,8 @@ android {
     publishing {
         singleVariant("release") {
             withSourcesJar()
+            // No withJavadocJar(): AGP's jar would be empty on Kotlin sources
+            // and it would collide with the Dokka-backed one attached below.
         }
     }
 }
@@ -43,11 +46,22 @@ dependencies {
     api(project(":pulse-core"))
 }
 
+// Maven Central rejects a deployment with no -javadoc.jar ("Javadocs must be
+// provided but not found in entries") — that is what failed the 0.1.0
+// promotion. Built from Dokka rather than the `javadoc` task, which is
+// NO-SOURCE on Kotlin sources and would ship an empty jar; this module holds
+// the API consumers actually read (Pulse.init/track/identify).
+val javadocJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("javadoc")
+    from(tasks.named("dokkaJavadoc"))
+}
+
 afterEvaluate {
     publishing {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
+                artifact(javadocJar)
                 artifactId = "pulse-sdk-android"
                 pom {
                     name.set("Pulse SDK for Android")

@@ -17,6 +17,9 @@ pluginManagement {
         kotlin("android") version "2.0.21"
         kotlin("plugin.serialization") version "2.0.21"
         id("com.android.library") version "8.5.2"
+        // Real API docs for the -javadoc.jar Maven Central requires. Pinned
+        // here with the rest so every module resolves it from one scope.
+        id("org.jetbrains.dokka") version "1.9.20"
     }
 }
 

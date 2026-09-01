@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
+    id("org.jetbrains.dokka")
     `maven-publish`
     signing
 }
@@ -14,6 +15,18 @@ java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
     withSourcesJar()
+    // Maven Central rejects a deployment with no -javadoc.jar ("Javadocs must
+    // be provided but not found in entries") — that is what failed the 0.1.0
+    // promotion. withJavadocJar() also wires the jar into the publication,
+    // which a hand-registered task would not.
+    withJavadocJar()
+}
+
+// ...but on Kotlin sources the `javadoc` task is NO-SOURCE, so that jar would
+// ship empty and merely satisfy the check. Fill it from Dokka instead so
+// consumers get real API docs.
+tasks.named<Jar>("javadocJar") {
+    from(tasks.named("dokkaJavadoc"))
 }
 
 kotlin {
