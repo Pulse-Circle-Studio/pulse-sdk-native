@@ -141,8 +141,38 @@ jobs:
       - name: Publish to Maven Central (Sonatype)
         run: ./gradlew :pulse-core:publish :pulse-android:publish
         env:
-          # Sonatype OSSRH credentials + GPG signing key (base64-armored).
+          # Sonatype user token + GPG signing key (armored private key).
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.PULSE_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.PULSE_SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+
+      # Uploading to the OSSRH Staging API only creates an OPEN staging
+      # repository — it does not appear in the Central Portal, and nothing
+      # reaches Maven Central, until it is promoted. Sonatype ties the open
+      # repository to the uploading IP, so this must run in the SAME job as
+      # the upload; a later run from another runner cannot find it.
+      # Without this step the publish is green and the artifact is nowhere,
+      # which is exactly what happened to 0.1.0.
+      - name: Promote the staging repository into the Central Portal
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          # The Portal NAMESPACE, not the group id: the group is
+          # studio.pulsecircle.pulse, a subgroup of the claimed namespace.
+          # Must match https://central.sonatype.com/publishing/namespaces.
+          NAMESPACE: studio.pulsecircle
+        run: |
+          # publishing_type=user_managed puts the deployment in the Portal for
+          # a human to release. Switch to `automatic` once a release has gone
+          # through cleanly and you want the tag alone to ship it.
+          token=$(printf '%s:%s' "$SONATYPE_USERNAME" "$SONATYPE_PASSWORD" | base64 -w0)
+          code=$(curl -sS -o /tmp/promote.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $token" \
+            "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/${NAMESPACE}?publishing_type=user_managed")
+          echo "promote HTTP $code"; cat /tmp/promote.json 2>/dev/null; echo
+          case "$code" in
+            2*) echo "Deployment is now visible at https://central.sonatype.com/publishing/deployments — release it there." ;;
+            *) echo "::error::Could not promote the staging repository (HTTP $code). The artifacts were uploaded but stay invisible in the Portal; see RELEASING.md for the recovery request."; exit 1 ;;
+          esac
+
