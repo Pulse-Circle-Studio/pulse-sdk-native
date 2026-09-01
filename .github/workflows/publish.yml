@@ -88,10 +88,40 @@ jobs:
             echo "::error::Empty secret(s):$missing. Set them in THIS repository (pulse-sdk-native) → Settings → Secrets and variables → Actions — secrets in another repository are not visible here."
             exit 1
           }
+          # Gradle's signing plugin reports every malformed key the same way
+          # ("Could not read PGP secret key"), so decide it here where we can
+          # say which mistake it is. The realistic ones: the public key
+          # exported instead of the secret one, a key id or fingerprint pasted
+          # instead of the key, or armor flattened onto a single line.
           case "$PULSE_SIGNING_KEY" in
+            *"BEGIN PGP PUBLIC KEY BLOCK"*)
+              echo "::error::PULSE_SIGNING_KEY holds a PUBLIC key. Maven Central signs with the private half: gpg --armor --export-secret-keys <KEY_ID> (note: --export-secret-keys, not --export)."
+              exit 1 ;;
             *"BEGIN PGP PRIVATE KEY BLOCK"*) ;;
-            *) echo "::error::PULSE_SIGNING_KEY is set but is not an armored private key. Use the full output of: gpg --armor --export-secret-keys <KEY_ID>"; exit 1 ;;
+            *)
+              echo "::error::PULSE_SIGNING_KEY is not an armored private key (no BEGIN PGP PRIVATE KEY BLOCK line). Paste the FULL output of: gpg --armor --export-secret-keys <KEY_ID> — including the BEGIN/END lines. A key id or fingerprint alone is not enough."
+              exit 1 ;;
           esac
+          if [ "$(printf '%s' "$PULSE_SIGNING_KEY" | wc -l)" -eq 0 ]; then
+            echo "::error::PULSE_SIGNING_KEY is a single line — the armor block lost its newlines. Copy the exported key verbatim, newlines included."
+            exit 1
+          fi
+
+          # Definitive check: the same bytes Gradle will read, parsed by gpg.
+          # Anything that survives to here but still cannot be imported would
+          # otherwise fail much later with no explanation.
+          export GNUPGHOME="$(mktemp -d)"
+          chmod 700 "$GNUPGHOME"
+          if ! printf '%s' "$PULSE_SIGNING_KEY" | gpg --batch --quiet --import 2>/tmp/gpg-import.err; then
+            echo "::error::PULSE_SIGNING_KEY could not be imported by gpg: $(tr '\n' ' ' </tmp/gpg-import.err)"
+            exit 1
+          fi
+          if ! gpg --batch --list-secret-keys --with-colons | grep -q '^sec:'; then
+            echo "::error::PULSE_SIGNING_KEY imported without producing a secret key — it is not a signing key Maven Central can use."
+            exit 1
+          fi
+          echo "Signing key OK: $(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
+          rm -rf "$GNUPGHOME"
 
       - name: Verify version matches tag
         run: |
