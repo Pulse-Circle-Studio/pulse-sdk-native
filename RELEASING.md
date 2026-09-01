@@ -85,8 +85,19 @@ promoted — that is what the "Promote the staging repository" step does. Sonaty
 ties the open repository to the uploading IP, so the promotion has to happen in
 the same CI job; that is why it cannot be retried from your laptop by default.
 
-To rescue an upload that was stranded before that step existed (`ip=any` lifts
-the IP restriction):
+**Re-running the failed job does not help.** A re-run replays the *tagged*
+commit, so if the tag predates the promotion step the upload strands again.
+Either move the tag onto a commit that has the step, or use the recovery
+workflow below.
+
+Easiest: run the **Sonatype recover** workflow (Actions → Sonatype recover →
+Run workflow). `list` shows what is stranded, `promote` sends it to the Portal,
+`drop` deletes it. It uses this repository's secrets and `ip=any`, so it works
+from any runner. Note the docs' warning: a repository left in a bad state makes
+later deployments from the same IP fail, so drop what you are not promoting.
+
+The same thing by hand, if you have the token locally (`ip=any` lifts the IP
+restriction):
 
 ```bash
 TOKEN=$(printf '%s:%s' "$SONATYPE_USERNAME" "$SONATYPE_PASSWORD" | base64 -w0)

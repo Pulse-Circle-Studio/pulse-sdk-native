@@ -1,0 +1,99 @@
+name: Sonatype recover
+
+# Rescue uploads that reached the OSSRH Staging API but never became Portal
+# deployments. That is what "green publish, empty Maven Central, No Components
+# Found" looks like: the upload leaves an OPEN staging repository, and it only
+# becomes visible after a promote call.
+#
+# Normally the publish workflow promotes in the same job. This exists for the
+# releases that ran before it did — and for cleanup, since the docs warn that a
+# repository left in a bad state makes later deployments from the same IP fail.
+#
+# `ip=any` lifts the same-IP restriction, so this can run on any runner and
+# uses the repository secrets instead of a token on someone's laptop.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'list = show what is stranded; promote = send it to the Portal; drop = delete it'
+        required: true
+        default: list
+        type: choice
+        options: [list, promote, drop]
+      publishing_type:
+        description: 'promote only: user_managed leaves the final Publish to you; automatic releases it if validation passes'
+        required: false
+        default: user_managed
+        type: choice
+        options: [user_managed, automatic]
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ${{ inputs.action }} stranded staging repositories
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          NAMESPACE: studio.pulsecircle
+          API: https://ossrh-staging-api.central.sonatype.com
+        run: |
+          set -euo pipefail
+          [ -n "${SONATYPE_USERNAME:-}" ] && [ -n "${SONATYPE_PASSWORD:-}" ] || {
+            echo "::error::SONATYPE_USERNAME / SONATYPE_PASSWORD are empty in this repository."
+            exit 1
+          }
+          token=$(printf '%s:%s' "$SONATYPE_USERNAME" "$SONATYPE_PASSWORD" | base64 -w0)
+          auth="Authorization: Bearer $token"
+
+          code=$(curl -sS -o /tmp/repos.json -w '%{http_code}' -H "$auth" \
+            "$API/manual/search/repositories?ip=any&profile_id=$NAMESPACE")
+          [ "${code:0:1}" = "2" ] || {
+            echo "::error::search failed (HTTP $code): $(cat /tmp/repos.json)"
+            exit 1
+          }
+
+          python3 - <<'PY' > /tmp/keys.txt
+          import json
+          data = json.load(open('/tmp/repos.json'))
+          repos = data.get('repositories') or []
+          if not repos:
+              print('# none', flush=True)
+          for r in repos:
+              print(f"{r.get('key','')}\t{r.get('state','')}\t{r.get('portal_deployment_id') or '-'}\t{';'.join(r.get('warnings') or [])}")
+          PY
+
+          if grep -q '^# none' /tmp/keys.txt; then
+            echo "No staging repositories for $NAMESPACE — nothing stranded."
+            echo "If Maven Central is still empty, the artifacts were never uploaded at all."
+            exit 0
+          fi
+
+          echo "Found:"
+          printf 'key\tstate\tportal_deployment_id\twarnings\n'
+          cat /tmp/keys.txt
+
+          [ "${{ inputs.action }}" = "list" ] && exit 0
+
+          failed=0
+          while IFS=$'\t' read -r key state _ _; do
+            [ -n "$key" ] || continue
+            if [ "${{ inputs.action }}" = "promote" ]; then
+              url="$API/manual/upload/repository/$key?publishing_type=${{ inputs.publishing_type }}"
+              method=POST
+            else
+              url="$API/manual/drop/repository/$key"
+              method=DELETE
+            fi
+            rc=$(curl -sS -o /tmp/out.json -w '%{http_code}' -X "$method" -H "$auth" "$url")
+            body=$(cat /tmp/out.json 2>/dev/null || true)
+            echo "${{ inputs.action }} $key (state=$state) -> HTTP $rc $body"
+            [ "${rc:0:1}" = "2" ] || failed=1
+          done < /tmp/keys.txt
+
+          [ "$failed" -eq 0 ] || { echo "::error::at least one request failed"; exit 1; }
+
+          if [ "${{ inputs.action }}" = "promote" ]; then
+            echo "Now visible at https://central.sonatype.com/publishing/deployments — press Publish there (user_managed)."
+          fi
