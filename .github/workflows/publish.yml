@@ -88,10 +88,47 @@ jobs:
             echo "::error::Empty secret(s):$missing. Set them in THIS repository (pulse-sdk-native) → Settings → Secrets and variables → Actions — secrets in another repository are not visible here."
             exit 1
           }
-          case "$PULSE_SIGNING_KEY" in
-            *"BEGIN PGP PRIVATE KEY BLOCK"*) ;;
-            *) echo "::error::PULSE_SIGNING_KEY is set but is not an armored private key. Use the full output of: gpg --armor --export-secret-keys <KEY_ID>"; exit 1 ;;
+          # Gradle's signing plugin reports every malformed key the same way
+          # ("Could not read PGP secret key"), so decide it here where we can
+          # say which mistake it is. The realistic ones: the public key
+          # exported instead of the secret one, a key id or fingerprint pasted
+          # instead of the key, or armor flattened onto a single line.
+          # The two secrets are easy to swap, and Gradle then reports a key
+          # problem for what is really a placement problem.
+          case "$PULSE_SIGNING_PASSWORD" in
+            *"BEGIN PGP"*)
+              echo "::error::PULSE_SIGNING_PASSWORD contains a PGP key block — the two secrets are swapped. PULSE_SIGNING_KEY takes the armored private key; PULSE_SIGNING_PASSWORD takes only its passphrase (leave it empty if the key has none)."
+              exit 1 ;;
           esac
+          case "$PULSE_SIGNING_KEY" in
+            *"BEGIN PGP PUBLIC KEY BLOCK"*)
+              echo "::error::PULSE_SIGNING_KEY holds a PUBLIC key. Maven Central signs with the private half: gpg --armor --export-secret-keys <KEY_ID> (note: --export-secret-keys, not --export)."
+              exit 1 ;;
+            *"BEGIN PGP PRIVATE KEY BLOCK"*) ;;
+            *)
+              echo "::error::PULSE_SIGNING_KEY is not an armored private key (no BEGIN PGP PRIVATE KEY BLOCK line). Paste the FULL output of: gpg --armor --export-secret-keys <KEY_ID> — including the BEGIN/END lines. A key id or fingerprint alone is not enough."
+              exit 1 ;;
+          esac
+          if [ "$(printf '%s' "$PULSE_SIGNING_KEY" | wc -l)" -eq 0 ]; then
+            echo "::error::PULSE_SIGNING_KEY is a single line — the armor block lost its newlines. Copy the exported key verbatim, newlines included."
+            exit 1
+          fi
+
+          # Definitive check: the same bytes Gradle will read, parsed by gpg.
+          # Anything that survives to here but still cannot be imported would
+          # otherwise fail much later with no explanation.
+          export GNUPGHOME="$(mktemp -d)"
+          chmod 700 "$GNUPGHOME"
+          if ! printf '%s' "$PULSE_SIGNING_KEY" | gpg --batch --quiet --import 2>/tmp/gpg-import.err; then
+            echo "::error::PULSE_SIGNING_KEY could not be imported by gpg: $(tr '\n' ' ' </tmp/gpg-import.err)"
+            exit 1
+          fi
+          if ! gpg --batch --list-secret-keys --with-colons | grep -q '^sec:'; then
+            echo "::error::PULSE_SIGNING_KEY imported without producing a secret key — it is not a signing key Maven Central can use."
+            exit 1
+          fi
+          echo "Signing key OK: $(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
+          rm -rf "$GNUPGHOME"
 
       - name: Verify version matches tag
         run: |
@@ -104,8 +141,38 @@ jobs:
       - name: Publish to Maven Central (Sonatype)
         run: ./gradlew :pulse-core:publish :pulse-android:publish
         env:
-          # Sonatype OSSRH credentials + GPG signing key (base64-armored).
+          # Sonatype user token + GPG signing key (armored private key).
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.PULSE_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.PULSE_SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+
+      # Uploading to the OSSRH Staging API only creates an OPEN staging
+      # repository — it does not appear in the Central Portal, and nothing
+      # reaches Maven Central, until it is promoted. Sonatype ties the open
+      # repository to the uploading IP, so this must run in the SAME job as
+      # the upload; a later run from another runner cannot find it.
+      # Without this step the publish is green and the artifact is nowhere,
+      # which is exactly what happened to 0.1.0.
+      - name: Promote the staging repository into the Central Portal
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          # The Portal NAMESPACE, not the group id: the group is
+          # studio.pulsecircle.pulse, a subgroup of the claimed namespace.
+          # Must match https://central.sonatype.com/publishing/namespaces.
+          NAMESPACE: studio.pulsecircle
+        run: |
+          # publishing_type=user_managed puts the deployment in the Portal for
+          # a human to release. Switch to `automatic` once a release has gone
+          # through cleanly and you want the tag alone to ship it.
+          token=$(printf '%s:%s' "$SONATYPE_USERNAME" "$SONATYPE_PASSWORD" | base64 -w0)
+          code=$(curl -sS -o /tmp/promote.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $token" \
+            "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/${NAMESPACE}?publishing_type=user_managed")
+          echo "promote HTTP $code"; cat /tmp/promote.json 2>/dev/null; echo
+          case "$code" in
+            2*) echo "Deployment is now visible at https://central.sonatype.com/publishing/deployments — release it there." ;;
+            *) echo "::error::Could not promote the staging repository (HTTP $code). The artifacts were uploaded but stay invisible in the Portal; see RELEASING.md for the recovery request."; exit 1 ;;
+          esac
+

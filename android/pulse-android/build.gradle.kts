@@ -76,8 +76,12 @@ afterEvaluate {
     }
 
     signing {
-        val signingKey = findProperty("signingKey") as String? ?: System.getenv("PULSE_SIGNING_KEY")
-        val signingPassword = findProperty("signingPassword") as String? ?: System.getenv("PULSE_SIGNING_PASSWORD")
+        // Same contract as :pulse-core — blank is missing, absent passphrase
+        // is an empty string (see the comment there).
+        val signingKey = (findProperty("signingKey") as String? ?: System.getenv("PULSE_SIGNING_KEY"))
+            ?.takeIf { it.isNotBlank() }
+        val signingPassword = (findProperty("signingPassword") as String?
+            ?: System.getenv("PULSE_SIGNING_PASSWORD")) ?: ""
         if (signingKey != null) {
             useInMemoryPgpKeys(signingKey, signingPassword)
         }

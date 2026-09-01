@@ -76,9 +76,15 @@ publishing {
 
 signing {
     // Tolerant of missing keys: signing is only required (and only configured)
-    // when a key is supplied via Gradle properties or the environment.
-    val signingKey = findProperty("signingKey") as String? ?: System.getenv("PULSE_SIGNING_KEY")
-    val signingPassword = findProperty("signingPassword") as String? ?: System.getenv("PULSE_SIGNING_PASSWORD")
+    // when a key is supplied via Gradle properties or the environment. Blank
+    // counts as missing — an empty CI secret would otherwise be treated as a
+    // key and fail with "Could not read PGP secret key".
+    val signingKey = (findProperty("signingKey") as String? ?: System.getenv("PULSE_SIGNING_KEY"))
+        ?.takeIf { it.isNotBlank() }
+    // A key generated without a passphrase has none; useInMemoryPgpKeys needs
+    // an empty string rather than null for that case.
+    val signingPassword = (findProperty("signingPassword") as String?
+        ?: System.getenv("PULSE_SIGNING_PASSWORD")) ?: ""
     if (signingKey != null) {
         useInMemoryPgpKeys(signingKey, signingPassword)
     }

@@ -72,8 +72,37 @@ Nexus 2 API that `maven-publish` already knows.
    gpg --armor --export-secret-keys <KEY_ID>         # value for PULSE_SIGNING_KEY
    ```
 
-4. After the first upload, releases land in the Portal as a staged deployment —
-   publish it there once, then subsequent releases can be set to auto-publish.
+4. After the upload, the release lands in the Portal as a staged deployment —
+   press **Publish** at [central.sonatype.com/publishing/deployments](https://central.sonatype.com/publishing/deployments).
+   Once a release has gone through cleanly you can switch the promotion step in
+   `publish.yml` to `publishing_type=automatic` and the tag alone will ship it.
+
+### If the Portal shows "No Components Found" after a green publish
+
+Uploading to the OSSRH Staging API creates an **open** staging repository. It
+is invisible in the Portal, and nothing reaches Maven Central, until it is
+promoted — that is what the "Promote the staging repository" step does. Sonatype
+ties the open repository to the uploading IP, so the promotion has to happen in
+the same CI job; that is why it cannot be retried from your laptop by default.
+
+To rescue an upload that was stranded before that step existed (`ip=any` lifts
+the IP restriction):
+
+```bash
+TOKEN=$(printf '%s:%s' "$SONATYPE_USERNAME" "$SONATYPE_PASSWORD" | base64 -w0)
+
+# 1. Find the stranded repository
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://ossrh-staging-api.central.sonatype.com/manual/search/repositories?ip=any&profile_id=studio.pulsecircle"
+
+# 2. Promote it by key (from the JSON above)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  "https://ossrh-staging-api.central.sonatype.com/manual/upload/repository/<KEY>?publishing_type=user_managed"
+
+# …or drop it and re-run the release instead
+curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "https://ossrh-staging-api.central.sonatype.com/manual/drop/repository/<KEY>"
+```
 
 ## Secrets
 
@@ -84,7 +113,8 @@ Settings → Secrets and variables → Actions.
 |---|---|---|
 | `COCOAPODS_TRUNK_TOKEN` | `pod trunk push` (iOS) | `pod trunk register <email> '<name>'`, confirm the emailed link, then read the `password` value under `machine trunk.cocoapods.org` in `~/.netrc`. It is a session token, not your account password. |
 | `SONATYPE_USERNAME`, `SONATYPE_PASSWORD` | Maven Central upload | Portal user token (step 2 above) |
-| `PULSE_SIGNING_KEY`, `PULSE_SIGNING_PASSWORD` | GPG signing of Maven artifacts | Armored private key + its passphrase (step 3 above) |
+| `PULSE_SIGNING_KEY` | GPG signing of Maven artifacts | The **whole armored private key** — every line of `gpg --armor --export-secret-keys <KEY_ID>`, `BEGIN`/`END` included. Not the key id or fingerprint: the runner has no keyring, Gradle signs with `useInMemoryPgpKeys`, so the key text itself has to be there |
+| `PULSE_SIGNING_PASSWORD` | same | Only the key's **passphrase**. Leave empty if the key was created without one (`--quick-generate-key` does not ask). Putting the key here instead is the easy mistake — the publish preflight now names it |
 
 ## Fixture parity
 
