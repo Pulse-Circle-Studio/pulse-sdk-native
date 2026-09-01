@@ -84,7 +84,8 @@ Settings → Secrets and variables → Actions.
 |---|---|---|
 | `COCOAPODS_TRUNK_TOKEN` | `pod trunk push` (iOS) | `pod trunk register <email> '<name>'`, confirm the emailed link, then read the `password` value under `machine trunk.cocoapods.org` in `~/.netrc`. It is a session token, not your account password. |
 | `SONATYPE_USERNAME`, `SONATYPE_PASSWORD` | Maven Central upload | Portal user token (step 2 above) |
-| `PULSE_SIGNING_KEY`, `PULSE_SIGNING_PASSWORD` | GPG signing of Maven artifacts | Armored private key + its passphrase (step 3 above) |
+| `PULSE_SIGNING_KEY` | GPG signing of Maven artifacts | The **whole armored private key** — every line of `gpg --armor --export-secret-keys <KEY_ID>`, `BEGIN`/`END` included. Not the key id or fingerprint: the runner has no keyring, Gradle signs with `useInMemoryPgpKeys`, so the key text itself has to be there |
+| `PULSE_SIGNING_PASSWORD` | same | Only the key's **passphrase**. Leave empty if the key was created without one (`--quick-generate-key` does not ask). Putting the key here instead is the easy mistake — the publish preflight now names it |
 
 ## Fixture parity
 

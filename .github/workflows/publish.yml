@@ -93,6 +93,13 @@ jobs:
           # say which mistake it is. The realistic ones: the public key
           # exported instead of the secret one, a key id or fingerprint pasted
           # instead of the key, or armor flattened onto a single line.
+          # The two secrets are easy to swap, and Gradle then reports a key
+          # problem for what is really a placement problem.
+          case "$PULSE_SIGNING_PASSWORD" in
+            *"BEGIN PGP"*)
+              echo "::error::PULSE_SIGNING_PASSWORD contains a PGP key block — the two secrets are swapped. PULSE_SIGNING_KEY takes the armored private key; PULSE_SIGNING_PASSWORD takes only its passphrase (leave it empty if the key has none)."
+              exit 1 ;;
+          esac
           case "$PULSE_SIGNING_KEY" in
             *"BEGIN PGP PUBLIC KEY BLOCK"*)
               echo "::error::PULSE_SIGNING_KEY holds a PUBLIC key. Maven Central signs with the private half: gpg --armor --export-secret-keys <KEY_ID> (note: --export-secret-keys, not --export)."
